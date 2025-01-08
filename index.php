@@ -1,9 +1,21 @@
 <?php
 
 include 'process.php';
+// Читаем содержимое файла 
+$html = file_get_contents(__FILE__);
+if ($html === false) {
+    die('Не удалось прочитать файл: ' . __FILE__);
+}
 
-$html = <<<HTML
+// Создаем итератор
+$iterator = new MetaTagIterator($html);
+// Удаляем мета-теги и заголовок
+$iterator->removeMetaTags();
 
+$modifiedHtml = $iterator->getDOM()->saveHTML();
+
+echo $modifiedHtml;
+?>
 
 <html class="sb-init"><head>
 	<base href="/templates/modex/">
@@ -445,11 +457,3 @@ $html = <<<HTML
 <script src="assets/js/commerce.js"></script>
 <script src="assets/js/e-commerce_product.js"></script>
 <body></html>
-
-
-HTML;
-$tagsRemovedHTML = removeMetaTags($html);
-echo($tagsRemovedHTML);
-// echo $html;
-
-?>

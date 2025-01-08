@@ -12,6 +12,10 @@ class MetaTagIterator implements Iterator {
         $this->elements = [];
 
         // Собираем мета-теги и заголовок
+        $this->collectElements();
+    }
+
+    private function collectElements() {
         // Получаем все заголовки и мета-теги
         $titleElements = $this->dom->getElementsByTagName('title');
         foreach ($titleElements as $element) {
@@ -50,24 +54,22 @@ class MetaTagIterator implements Iterator {
         }
     }
 
+    public function removeMetaTags() {
+        // Удаляем элементы title и все meta-теги
+        while ($this->valid()) {
+            $tag = $this->current();
+            if ($tag->getAttribute('name') === 'description' || 
+                $tag->getAttribute('name') === 'keywords' || 
+                $tag instanceof DOMElement && $tag->nodeName === 'title') {
+                $this->removeCurrent();
+            } else {
+                $this->next(); // Перемещаемся только если не удаляем элемент
+            }
+        }
+    }
+
     public function getDOM() {
         return $this->dom; // Метод для получения DOM
     }
 }
-
-function removeMetaTags($html) {
-    // Создаем итератор
-    $iterator = new MetaTagIterator($html);
-    
-    // Удаляем элементы title и все meta-теги
-    while ($iterator->valid()) {
-        $tag = $iterator->current();
-        if ($tag->getAttribute('name') === 'description' || $tag->getAttribute('name') === 'keywords' || $tag instanceof DOMElement && $tag->nodeName === 'title') {
-            $iterator->removeCurrent();
-        }
-        $iterator->next();
-    }
-
-    // Получаем измененный HTML
-    return $iterator->getDOM()->saveHTML(); // Используем метод для доступа к DOM
-}
+?>
