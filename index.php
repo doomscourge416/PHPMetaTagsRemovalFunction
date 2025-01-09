@@ -1,22 +1,3 @@
-<?php
-
-include 'process.php';
-// Читаем содержимое файла 
-$html = file_get_contents(__FILE__);
-if ($html === false) {
-    die('Не удалось прочитать файл: ' . __FILE__);
-}
-
-// Создаем итератор
-$iterator = new MetaTagIterator($html);
-// Удаляем мета-теги и заголовок
-$iterator->removeMetaTags();
-
-$modifiedHtml = $iterator->getDOM()->saveHTML();
-
-echo $modifiedHtml;
-?>
-
 <html class="sb-init"><head>
 	<base href="/templates/modex/">
 	<meta charset="UTF-8">

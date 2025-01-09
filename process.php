@@ -8,7 +8,7 @@ class MetaTagIterator implements Iterator {
     public function __construct($html) {
         // Создаем новый объект DOMDocument
         $this->dom = new DOMDocument();
-        @$this->dom->loadHTML($html);
+        @$this->dom->loadHTML($html); // Загружаем HTML
         $this->elements = [];
 
         // Собираем мета-теги и заголовок
@@ -72,4 +72,33 @@ class MetaTagIterator implements Iterator {
         return $this->dom; // Метод для получения DOM
     }
 }
+
+// Проверяем аргументы
+if ($argc < 2) {
+    die("Usage: php process.php <path_to_html_file>\n");
+}
+
+$htmlFilePath = $argv[1]; // Получаем путь из аргумента
+
+// Проверяем существование файла
+if (!file_exists($htmlFilePath)) {
+    die("Файл не найден: $htmlFilePath\n");
+}
+
+// Читаем содержимое файла
+$html = file_get_contents($htmlFilePath);
+if ($html === false) {
+    die("Не удалось прочитать файл: $htmlFilePath\n");
+}
+
+
+$iterator = new MetaTagIterator($html);
+$iterator->removeMetaTags();
+// Получаем модифицированный HTML
+$modifiedHtml = $iterator->getDOM()->saveHTML();
+
+$modifiedFilePath = preg_replace('/\.html$/', '_modified.html', $htmlFilePath);
+file_put_contents($modifiedFilePath, $modifiedHtml);
+
+echo "Файл обработан. Результат сохранён в: $modifiedFilePath\n";
 ?>
