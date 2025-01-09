@@ -1,104 +1,76 @@
 <?php
 
-class MetaTagIterator implements Iterator {
-    private $dom;
-    private $elements;
+class MetaTagIterator implements Iterator
+{
+    private $tags = [];
     private $position = 0;
 
-    public function __construct($html) {
-        // Создаем новый объект DOMDocument
-        $this->dom = new DOMDocument();
-        @$this->dom->loadHTML($html); // Загружаем HTML
-        $this->elements = [];
-
-        // Собираем мета-теги и заголовок
-        $this->collectElements();
-    }
-
-    private function collectElements() {
-        // Получаем все заголовки и мета-теги
-        $titleElements = $this->dom->getElementsByTagName('title');
-        foreach ($titleElements as $element) {
-            $this->elements[] = $element;
-        }
-
-        $metaElements = $this->dom->getElementsByTagName('meta');
-        foreach ($metaElements as $element) {
-            $this->elements[] = $element;
-        }
-    }
-
-    public function current() {
-        return $this->elements[$this->position];
-    }
-
-    public function key() {
-        return $this->position;
-    }
-
-    public function next() {
-        ++$this->position;
-    }
-
-    public function rewind() {
+    public function __construct($htmlContent)
+    {
+        $this->tags = $this->extractRelevantMetaTags($htmlContent);
         $this->position = 0;
     }
 
-    public function valid() {
-        return isset($this->elements[$this->position]);
-    }
+    private function extractRelevantMetaTags($htmlContent)
+    {
+        $matches = [];
+        $tags = [];
 
-    public function removeCurrent() {
-        if ($this->valid()) {
-            $this->current()->parentNode->removeChild($this->current());
+        // Извлекаем  <title>
+        if (preg_match('/<title>(.*?)<\/title>/i', $htmlContent, $matches)) {
+            $tags[] = '<title>' . $matches[1] . '</title>';
         }
-    }
 
-    public function removeMetaTags() {
-        // Удаляем элементы title и все meta-теги
-        while ($this->valid()) {
-            $tag = $this->current();
-            if ($tag->getAttribute('name') === 'description' || 
-                $tag->getAttribute('name') === 'keywords' || 
-                $tag instanceof DOMElement && $tag->nodeName === 'title') {
-                $this->removeCurrent();
-            } else {
-                $this->next(); // Перемещаемся только если не удаляем элемент
-            }
+        // Извлекаем description и keywords
+        if (preg_match_all('/<meta[^>]+(name=["\'](description|keywords)["\'][^>]*|content=["\'](.*?)["\'][^>]*|name=["\'](description|keywords)["\'])[^>]*>/i', $htmlContent, $matches)) {
+            $tags = array_merge($tags, $matches[0]);
         }
+
+        return $tags;
     }
 
-    public function getDOM() {
-        return $this->dom; // Метод для получения DOM
+    public function current():mixed
+    {
+        return $this->tags[$this->position] ?? null;
+    }
+
+    public function key():mixed
+    {
+        return $this->position;
+    }
+
+    public function next():void
+    {
+        $this->position++;
+    }
+
+    public function valid():bool
+    {
+        return isset($this->tags[$this->position]);
+    }
+
+    public function rewind():void
+    {
+        $this->position = 0;
     }
 }
 
-// Проверяем аргументы
+// Получение пути к файлу из аргумента командной строки
 if ($argc < 2) {
     die("Usage: php process.php <path_to_html_file>\n");
 }
 
-$htmlFilePath = $argv[1]; // Получаем путь из аргумента
+$htmlFilePath = $argv[1];
 
-// Проверяем существование файла
 if (!file_exists($htmlFilePath)) {
-    die("Файл не найден: $htmlFilePath\n");
+    die("File not found: " . $htmlFilePath . PHP_EOL);
 }
 
-// Читаем содержимое файла
-$html = file_get_contents($htmlFilePath);
-if ($html === false) {
-    die("Не удалось прочитать файл: $htmlFilePath\n");
+$htmlContent = file_get_contents($htmlFilePath);
+
+$iterator = new MetaTagIterator($htmlContent);
+
+echo "Extracted meta tags from {$htmlFilePath}:\n";
+foreach ($iterator as $metaTag) {
+    echo $metaTag . PHP_EOL;
 }
-
-
-$iterator = new MetaTagIterator($html);
-$iterator->removeMetaTags();
-// Получаем модифицированный HTML
-$modifiedHtml = $iterator->getDOM()->saveHTML();
-
-$modifiedFilePath = preg_replace('/\.html$/', '_modified.html', $htmlFilePath);
-file_put_contents($modifiedFilePath, $modifiedHtml);
-
-echo "Файл обработан. Результат сохранён в: $modifiedFilePath\n";
-?>
